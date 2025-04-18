@@ -28,9 +28,13 @@ def create_new_notepad(token: str, name: str):
         'title': name
     }
 
-    response = requests.post(f"{api_endpoint}/folders?token={token}", json=notepad_data)
+    try:
+        response = requests.post(f"{api_endpoint}/folders?token={token}", json=notepad_data)
+        return response.json()['id']
+    except:
+        raise ValueError("Ошибка. Не удалось обработать токен авторизации")
 
-    return response.json()['id']
+
 
 
 def generate_headline(text_content: str):
@@ -46,12 +50,12 @@ def generate_headline(text_content: str):
     return text
 
 
-if __name__ == "__main__":
-    directory = "Google Keep/"
+def main():
+    directory = "Takeout/Google Keep/"
 
     json_files = []
 
-
+    os.system('cls' if os.name == 'nt' else 'clear')
     print("Небольшой скрипт для переноса текстовых заметок из Google Keep в Joplin")
     time.sleep(1)
     print("Необходимо зайти в параметры Joplin и найти 'Настройка веб-клиппера - > Включить службу веб-клиппера'")
@@ -62,16 +66,26 @@ if __name__ == "__main__":
     print('Введите имя блокнота, в который будут перенесены заметки (default: Google Keep):')
     notedpad_id = create_new_notepad(token, input())
 
+    
+    try:
+        print("Начинаем процесс переноса")
+        time.sleep(2)
+        for filename in os.listdir(directory):
+            if filename.endswith('.json'):
+                file_path = os.path.join(directory, filename)
 
-    print("Начинаем процесс переноса...")
-    for filename in os.listdir(directory):
-        if filename.endswith('.json'):
-            file_path = os.path.join(directory, filename)
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
 
-            with open(file_path, 'r') as f:
-                data = json.load(f)
+                    if data.get('textContent') != '' and type(data.get('textContent')) == str:
+                        create_note_from_json(token, data, notedpad_id)
+        print("Перенос окончен")
 
-                if data.get('textContent') != '' and type(data.get('textContent')) == str:
-                    create_note_from_json(token, data, notedpad_id)
+    except:
+        print("Ошибка. Не найдена папка для импорта")
+        print("Необходимо скачать архив с заметками по ссылке https://takeout.google.com")
+        print("После распаковать его в директорию с проектом")
 
-    print("Перенос окончен")
+
+if __name__ == "__main__":
+    main()
